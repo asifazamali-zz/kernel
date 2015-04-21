@@ -1,4 +1,4 @@
-obj-m +=getDevice2.o
+obj-m +=getDevice2_copy.o
 #obj-m +=kmalloc2.o
 all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) 
