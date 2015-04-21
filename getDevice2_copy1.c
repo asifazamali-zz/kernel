@@ -137,22 +137,22 @@ static __init int start_module(void)
 // printk("nr_request %d\n",queue->nr_requests); 
 // if(blk_fetch_request(queue)==NULL)
 //	printk("request queue is null\n");
- if((req =blk_get_request(queue,0,GFP_KERNEL)) != NULL)                    //change to elv_next_request (3.18)  ...showing NULL request queue
- {
-   printk("inside while %d\n",req->cpu);
-   queue1=req->q;
-   if(queue1)
+// if((req =blk_get_request(queue,0,GFP_KERNEL)) != NULL)                    //change to elv_next_request (3.18)  ...showing NULL request queue
+// {
+//   printk("inside while %d\n",req->cpu);
+//   queue1=req->q;
+//   if(queue1)
    {
-     printk("nr_request %d\n",queue1->nr_requests); 
-/*     if(list_empty(&queue->queue_head))
+     printk("nr_request %d\n",queue->nr_requests); 
+     if(list_empty(&queue->queue_head))
 	printk("List empty\n");
-     req_queue=(&(queue->queue_head))->next;
-     req=list_entry(req_queue,struct request,queuelist);
+//     req_queue=(&(queue->queue_head))->next;
+//     req=list_entry(req_queue,struct request,queuelist);
    //  queue1=req->q;
    //  if(queue1)
 //	printk("nr_request %d\n",queue1->nr_requests);
  //    printk("cpu %d\n",req->cpu);
-     if(req_queue)
+/*     if(req_queue)
 	{
 	  if(req_queue->next==req_queue)
 		printk("List is empty\n");
@@ -173,7 +173,7 @@ for(list=req_queue;list->next!=req_queue;list=list->next)
         }
   */
   } 
- }
+
 // }
 /*    buf = (unsigned char*)vmalloc(0x800);
     memset( buf , 0xFE , 0x800 );

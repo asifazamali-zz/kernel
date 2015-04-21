@@ -111,69 +111,23 @@ static __init int start_module(void)
  struct bio *bio;
  char *buf;
  struct list_head *req_queue,*list;
-//class_dev_iter_init(&iter, &block_class, NULL,NULL);
-// while ((dev = class_dev_iter_next(&iter))) {
-// struct gendisk *disk = dev_to_disk(dev);
-//	printk("%s\n",dev_name(dev));
-// if (strcmp(dev_name(dev), name)
- 
-// }
- //dev_t dev=MKDEV(23,0);
+
  dev_t dev=name_to_dev_t("/dev/sda1");
  dev_t dev1=blk_lookup_devt("sda",1); 
  printk(KERN_INFO "Major %d minor %d\n",MAJOR(dev),MINOR(dev));
  disk = get_gendisk(dev,&dummy);
  printk(KERN_INFO "disk name %s\n",disk->disk_name);
-/* if(disk->part_tbl->len<1+0) 
- {
-   printk("inside if\n");
-//   put_disk(disk);
-//   disk=0;
-   return 0;
- }
-*/
- queue=disk->queue;
- 
-// printk("nr_request %d\n",queue->nr_requests); 
-// if(blk_fetch_request(queue)==NULL)
-//	printk("request queue is null\n");
- if((req =blk_get_request(queue,0,GFP_KERNEL)) != NULL)                    //change to elv_next_request (3.18)  ...showing NULL request queue
- {
-   printk("inside while %d\n",req->cpu);
-   queue1=req->q;
-   if(queue1)
-   {
-     printk("nr_request %d\n",queue1->nr_requests); 
-/*     if(list_empty(&queue->queue_head))
-	printk("List empty\n");
-     req_queue=(&(queue->queue_head))->next;
-     req=list_entry(req_queue,struct request,queuelist);
-   //  queue1=req->q;
-   //  if(queue1)
-//	printk("nr_request %d\n",queue1->nr_requests);
- //    printk("cpu %d\n",req->cpu);
-     if(req_queue)
-	{
-	  if(req_queue->next==req_queue)
-		printk("List is empty\n");
-        }	
-for(list=req_queue;list->next!=req_queue;list=list->next)
-	{
-	  printk("inside list\n");
-	  req=list_entry(list,struct request,queuelist);
-	  printk("%d\n",req->cpu);
-        }
-    bio=req->bio;
 
-     if(bio)
-	printk("I/O count %u\n",bio->bi_size);
-     for (bio = (req)->bio; bio; bio = bio->bi_next)     
-	{
-		printk("I/O Count %u\n",bio->bi_size);
-        }
-  */
-  } 
- }
+ queue=disk->queue;
+ req=queue->boundary_rq;
+ if(req)
+	printk("%d",req->cpu); 
+
+     printk("nr_request %d\n",queue->nr_requests); 
+     if(list_empty(&queue->queue_head))
+	printk("List empty\n");
+ 
+
 // }
 /*    buf = (unsigned char*)vmalloc(0x800);
     memset( buf , 0xFE , 0x800 );
