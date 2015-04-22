@@ -19,6 +19,7 @@ __used
 __attribute__((section("__versions"))) = {
 	{ 0xe37a5a9c, __VMLINUX_SYMBOL_STR(module_layout) },
 	{ 0xb6b46a7c, __VMLINUX_SYMBOL_STR(param_ops_int) },
+	{ 0xf9a482f9, __VMLINUX_SYMBOL_STR(msleep) },
 	{ 0xebeb2362, __VMLINUX_SYMBOL_STR(get_gendisk) },
 	{ 0x27e1a049, __VMLINUX_SYMBOL_STR(printk) },
 	{ 0xf0fdf6cb, __VMLINUX_SYMBOL_STR(__stack_chk_fail) },
@@ -37,4 +38,4 @@ __attribute__((section(".modinfo"))) =
 "depends=";
 
 
-MODULE_INFO(srcversion, "4C4AFDA7354AF13E4EEACF4");
+MODULE_INFO(srcversion, "EBED6B0FCD0246D58B7F099");

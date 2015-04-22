@@ -127,13 +127,13 @@ if(!disk)
    req=list_entry(req_queue,struct request,queuelist);
      if(list_empty(&queue->queue_head))
 	printk("List empty\n");
- if(req)
+else
+{  if(req)
 	printk("cpu %d\n",req->cpu); 
  if(queue->make_request_fn)
 	printk("make_request_fn\n");
-   msleep(1000);  
    printk("nr_request %d\n",queue->nr_requests); 
-   msleep(1000);
+ }  msleep(1000);
  }  
 
 // }
