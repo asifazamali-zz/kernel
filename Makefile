@@ -1,6 +1,7 @@
-CFLAGS_getDevice2_copy3.o := -I$(src)
-obj-m +=getDevice2_copy3.o
+#CFLAGS_getDevice2_copy3.o := -I$(src)
+obj-m +=getDevice2_copy4.o
 #obj-m +=kmalloc2.o
+#obj-m+=demo.o
 all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) 
 clean:

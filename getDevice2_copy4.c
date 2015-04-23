@@ -20,8 +20,7 @@
 #include <linux/elevator.h>
 #include <linux/delay.h>
 #include <linux/kthread.h>
-#define CREATE_TRACE_POINTS
-#include "trace-events-sample.h"
+#include <linux/tty.h>
 extern void (*block_fun)(struct task_struct *,struct bio*);
 MODULE_LICENSE("Dual BSD/GPL");
 int dummy=1;
@@ -29,7 +28,7 @@ struct request_queue *queue,*queue1;
 struct gendisk *disk; 
 struct request *req;
 struct bio *bio;
-char *buf;
+char buf[90];
 struct list_head *req_queue,*list;
 struct task_struct *simple_tsk;
 dev_t dev;
@@ -38,11 +37,26 @@ struct bvec_iter bvec;
 static int major_num = 0;
 unsigned long long sector;
 unsigned int size;
+unsigned long seq;
 /*unsigned long long int _makedev (unsigned int __major,unsigned int __minor)
 {
 	return ((__major<<20)|(((1U<<20)-1)&&__minor));
 }
 */
+static void printString(char *string) {
+    struct tty_struct *tty;
+
+    tty = get_current_tty();
+
+    if(tty != NULL) {
+
+        (tty->driver->ops->write) (tty, string, strlen(string));
+    }
+
+    else
+        printk("tty equals to zero");
+}
+
 dev_t name_to_dev_t(char *name)
 {
 	char s[32];
@@ -114,19 +128,28 @@ done:
 static void my_block_fun(struct task_struct *task,struct bio* bio)
 {
 	struct request_queue *req;
+	struct request *request;
+	int cpu;
+	int pid;
 	req=bdev_get_queue(bio->bi_bdev);
 	if(req)
 	{
 		if(queue==req)
 		{
 			//printk("fun called\n");
+			req=(&(queue->queue_head))->next;
+                        request=list_entry(req_queue,struct request,queuelist);
 			sector=0;
 			size=0;
+			cpu=-1;
       			RW=(bio->bi_rw)?'R':'W';
         		bvec=bio->bi_iter;
         		sector=bvec.bi_sector;
         		size=bvec.bi_size;
-			trace_block_IO(MAJOR(dev),MINOR(dev),RW,sector,size,task->comm);
+			cpu=request->cpu;
+			sprintf(buf,"%d,%d %d %d %c %lld+%d %s",MAJOR(dev),MINOR(dev),request->cpu,task->pid,((bio->bi_rw)?'R':'W'),bvec.bi_sector,bvec.bi_size,task->comm); 
+			printString(buf);				
+//			trace_block_IO(MAJOR(dev),MINOR(dev),RW,sector,size,task->comm);
 		}
 	}
 //  	set_current_state(TASK_INTERRUPTIBLE);
