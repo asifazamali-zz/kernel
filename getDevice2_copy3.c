@@ -22,7 +22,7 @@
 #include <linux/kthread.h>
 #define CREATE_TRACE_POINTS
 #include "trace-events-sample.h"
-
+extern void (*block_fun)(struct task_struct *);
 MODULE_LICENSE("Dual BSD/GPL");
 int dummy=1;
 struct request_queue *queue,*queue1;
@@ -37,7 +37,7 @@ char RW;
 struct bvec_iter bvec;
 static int major_num = 0;
 unsigned long long sector;
-unsigned int size
+unsigned int size;
 /*unsigned long long int _makedev (unsigned int __major,unsigned int __minor)
 {
 	return ((__major<<20)|(((1U<<20)-1)&&__minor));
@@ -111,7 +111,7 @@ done:
 	return res;
 }
 
-static void thread_function(void *arg)
+static void my_block_fun(struct task_struct *task)
 {
   	set_current_state(TASK_INTERRUPTIBLE);
     schedule_timeout(HZ);
@@ -130,21 +130,15 @@ static void thread_function(void *arg)
    				size=0;
    				RW=(bio->bi_rw)?'R':'W';
    				bvec=bio->bi_iter;
-   				if(bvec)
-   					sector=bvec.bi_sector;
-   					size=bvec.bi_size;
-   				trace_block_IO(MAJOR(dev),MINOR(dev),RW,sector,size);
+   				sector=bvec.bi_sector;
+   				size=bvec.bi_size;
+   				trace_block_IO(MAJOR(dev),MINOR(dev),RW,sector,size,task->comm);
    			}	
     	}
     
  	}
 }
-static int thread_block(void *arg)
-{
-   while (!kthread_should_stop()) 
-                thread_func();
-   return 0;
-}
+
 static __init int start_module(void)
 {
    	dev=name_to_dev_t("/dev/sda1");
@@ -154,9 +148,10 @@ static __init int start_module(void)
  	printk(KERN_INFO "disk name %s\n",disk->disk_name);
 	if(!disk)
 	return 0;
- 	simple_tsk = kthread_run(simple_thread, NULL, "event-sample");
-        if (IS_ERR(simple_tsk))
-                return -1;
+	block_fun=my_block_fun;
+// 	simple_tsk = kthread_run(simple_thread, NULL, "event-sample");
+//        if (IS_ERR(simple_tsk))
+//                return -1;
 
 // while(1)
 // {
