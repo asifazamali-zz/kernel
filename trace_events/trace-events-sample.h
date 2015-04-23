@@ -75,30 +75,23 @@
  * to the data structure in the ring buffer, and is defined by the
  * TP_STRUCT__entry.
  */
-TRACE_EVENT(blockIO,
+TRACE_EVENT(foo_bar,
 
-	TP_PROTO(int maj,int min,char RW,unsigned long long sector,unsigned int size),
+	TP_PROTO(char *foo, int bar),
 
-	TP_ARGS(maj,min,RW,sector,size),
+	TP_ARGS(foo, bar),
 
 	TP_STRUCT__entry(
-		__field(	int,	maj			)
-		__field(	int,	min			)
-		__field(	char,	RW			)
-		__field(	unsigned long long,	sector			)
-		__field(	unsigned int,	size			)
+		__array(	char,	foo,    10		)
+		__field(	int,	bar			)
 	),
 
 	TP_fast_assign(
-		__entry->maj	= maj;
-		__entry->min	= min;
-		__entry->RW	= RW;
-		__entry->sector	= sector;
-		__entry->size	= size;
-		
+		strlcpy(__entry->foo, foo, 10);
+		__entry->bar	= bar;
 	),
 
-	TP_printk("%d,%d %c %llu + %u", __entry->maj, __entry->min,__entry->RW,__entry->sector,__entry->size)
+	TP_printk("foo %s %d", __entry->foo, __entry->bar)
 );
 #endif
 
@@ -137,7 +130,7 @@ TRACE_EVENT(blockIO,
  */
 #undef TRACE_INCLUDE_PATH
 #undef TRACE_INCLUDE_FILE
-#define TRACE_INCLUDE_PATH /home/asif/kernel/project/kernel/
+#define TRACE_INCLUDE_PATH .
 /*
  * TRACE_INCLUDE_FILE is not needed if the filename and TRACE_SYSTEM are equal
  */

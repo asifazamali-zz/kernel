@@ -1,44 +1,9 @@
-/*
- * If TRACE_SYSTEM is defined, that will be the directory created
- * in the ftrace directory under /sys/kernel/debug/tracing/events/<system>
- *
- * The define_trace.h below will also look for a file name of
- * TRACE_SYSTEM.h where TRACE_SYSTEM is what is defined here.
- * In this case, it would look for sample.h
- *
- * If the header name will be different than the system name
- * (as in this case), then you can override the header name that
- * define_trace.h will look up by defining TRACE_INCLUDE_FILE
- *
- * This file is called trace-events-sample.h but we want the system
- * to be called "sample". Therefore we must define the name of this
- * file:
- *
- * #define TRACE_INCLUDE_FILE trace-events-sample
- *
- * As we do an the bottom of this file.
- *
- * Notice that TRACE_SYSTEM should be defined outside of #if
- * protection, just like TRACE_INCLUDE_FILE.
- */
 #undef TRACE_SYSTEM
-#define TRACE_SYSTEM sample
+#define TRACE_SYSTEM blocktrace
 
-/*
- * Notice that this file is not protected like a normal header.
- * We also must allow for rereading of this file. The
- *
- *  || defined(TRACE_HEADER_MULTI_READ)
- *
- * serves this purpose.
- */
-#if !defined(_TRACE_EVENT_SAMPLE_H) || defined(TRACE_HEADER_MULTI_READ)
-#define _TRACE_EVENT_SAMPLE_H
+#if !defined(_TRACE_BLOCK_EVENT_H) || defined(TRACE_HEADER_MULTI_READ)
+#define _TRACE_BLOCK_EVENT_H
 
-/*
- * All trace headers should include tracepoint.h, until we finally
- * make it into a standard header.
- */
 #include <linux/tracepoint.h>
 
 /*
@@ -135,11 +100,10 @@ TRACE_EVENT(blockIO,
  * then we could risk that being converted too, and give us an unexpected
  * result.
  */
-#undef TRACE_INCLUDE_PATH
 #undef TRACE_INCLUDE_FILE
-#define TRACE_INCLUDE_PATH /home/asif/kernel/project/kernel/
+#define TRACE_INCLUDE_PATH .
 /*
  * TRACE_INCLUDE_FILE is not needed if the filename and TRACE_SYSTEM are equal
  */
-#define TRACE_INCLUDE_FILE trace-events-sample
+#define TRACE_INCLUDE_FILE trace-block-events
 #include <trace/define_trace.h>

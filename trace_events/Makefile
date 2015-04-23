@@ -12,8 +12,6 @@
 CFLAGS_trace-events-sample.o := -I$(src)
 
 #obj-$(CONFIG_SAMPLE_TRACE_EVENTS) += trace-events-sample.o
-obj-m+=trace-events-sample.o
+obj-m +=trace-events-sample.o
 all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD)
-clean:
-	 make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean

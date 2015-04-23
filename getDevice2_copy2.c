@@ -19,17 +19,30 @@
 #include <linux/fs.h>
 #include <linux/elevator.h>
 #include <linux/delay.h>
-MODULE_LICENSE("Dual BSD/GPL");
+#include <linux/kthread.h>
+#define CREATE_TRACE_POINTS
+#include "trace-block-events.h"
 
-//static char *Version = "1.0";
+MODULE_LICENSE("Dual BSD/GPL");
+int dummy=1;
+struct request_queue *queue,*queue1;
+struct gendisk *disk; 
+struct request *req;
+struct bio *bio;
+char *buf;
+struct list_head *req_queue,*list;
+struct task_struct *simple_tsk;
+dev_t dev;
+char RW;
+struct bvec_iter bvec;
 static int major_num = 0;
-module_param(major_num, int, 0);
-extern int start_recover_map(int mode);
-unsigned long long int _makedev (unsigned int __major,unsigned int __minor)
+unsigned long long sector;
+unsigned int size
+/*unsigned long long int _makedev (unsigned int __major,unsigned int __minor)
 {
 	return ((__major<<20)|(((1U<<20)-1)&&__minor));
 }
-
+*/
 dev_t name_to_dev_t(char *name)
 {
 	char s[32];
@@ -72,11 +85,7 @@ dev_t name_to_dev_t(char *name)
 		printk("after lookup\n");
 		goto done;
 	}
-	/*
-	 * try non-existant, but valid partition, which may only exist
-	 * after revalidating the disk, like partitioned md devices
-	 */
-	while (p > s && isdigit(p[-1]))
+while (p > s && isdigit(p[-1]))
 		p--;
 	if (p == s || !*p || *p == '0')
 		goto fail;
@@ -102,39 +111,56 @@ done:
 	return res;
 }
 
-
+static void thread_function(void *arg)
+{
+  	set_current_state(TASK_INTERRUPTIBLE);
+    schedule_timeout(HZ);
+ 	queue=disk->queue;
+ //req=queue->boundary_rq;
+   	req_queue=(&(queue->queue_head))->next;
+   	req=list_entry(req_queue,struct request,queuelist);
+    if(!list_empty(&queue->queue_head))
+    {
+ 		if(req)
+   		{
+   			bio=req->bio;
+   			for_each_bio(bio)
+   			{
+   				sector=0;
+   				size=0;
+   				RW=(bio->bi_rw)?'R':'W';
+   				bvec=bio->bi_iter;
+   				if(bvec)
+   					sector=bvec.bi_sector;
+   					size=bvec.bi_size;
+   				trace_block_IO(MAJOR(dev),MINOR(dev),RW,sector,size);
+   			}	
+    	}
+    
+ 	}
+}
+static int thread_block(void *arg)
+{
+   while (!kthread_should_stop()) 
+                thread_func();
+   return 0;
+}
 static __init int start_module(void)
 {
- int dummy=1;
- struct request_queue *queue,*queue1;
- struct gendisk *disk; 
- struct request *req;
- struct bio *bio;
- char *buf;
- struct list_head *req_queue,*list;
- dev_t dev=name_to_dev_t("/dev/sda1");
+   	dev=name_to_dev_t("/dev/sda1");
 // dev_t dev1=blk_lookup_devt("sda",1); 
- printk(KERN_INFO "Major %d minor %d\n",MAJOR(dev),MINOR(dev));
- disk = get_gendisk(dev,&dummy);
- printk(KERN_INFO "disk name %s\n",disk->disk_name);
-if(!disk)
+    printk(KERN_INFO "Major %d minor %d\n",MAJOR(dev),MINOR(dev));
+ 	disk = get_gendisk(dev,&dummy);
+ 	printk(KERN_INFO "disk name %s\n",disk->disk_name);
+	if(!disk)
 	return 0;
- while(1)
- {
-   queue=disk->queue;
- //req=queue->boundary_rq;
-   req_queue=(&(queue->queue_head))->next; 
-   req=list_entry(req_queue,struct request,queuelist);
-     if(list_empty(&queue->queue_head))
-	printk("List empty\n");
- if(req)
-	printk("cpu %d\n",req->cpu); 
- if(queue->make_request_fn)
-	printk("make_request_fn\n");
-   msleep(1000);  
-   printk("nr_request %d\n",queue->nr_requests); 
-   msleep(1000);
- }  
+ 	simple_tsk = kthread_run(simple_thread, NULL, "event-sample");
+        if (IS_ERR(simple_tsk))
+                return -1;
+
+// while(1)
+// {
+ // }  
 
 // }
 /*    buf = (unsigned char*)vmalloc(0x800);
