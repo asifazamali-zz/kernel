@@ -12,22 +12,33 @@
 #include <linux/delay.h>
 #include <linux/tty.h>
 #include <linux/sched.h>
+
+#include <linux/timekeeping.h>
+
 extern void (*block_fun)(struct task_struct *,struct bio*);
+extern void (*block_requeue)(struct request_queue *q,struct request *rq);
+extern void (*block_comp)(struct request *rq);
 int dummy=1;
 struct request_queue *queue,*queue1;
 struct gendisk *disk; 
 struct request *req;
 struct bio *bio;
 char buf[90];
+char device[30],device1[30];
 struct list_head *req_queue,*list;
 struct task_struct *simple_tsk;
 dev_t dev;
-char RW;
+char RW,F;
 struct bvec_iter bvec;
-static int major_num = 0;
 unsigned long long sector;
 unsigned int size;
-unsigned long seq;
+unsigned long seq,diff_sec;
+unsigned long long diff_nsec;
+int timer=10;
+struct timespec init_time,current_time;
+struct request *request;
+int cpu;
+int pid;
 /*unsigned long long int _makedev (unsigned int __major,unsigned int __minor)
 {
 	return ((__major<<20)|(((1U<<20)-1)&&__minor));
@@ -114,108 +125,97 @@ fail:
 done:
 	return res;
 }
+static void my_block_requeue(struct request_queue *q,struct request *rq)
+{
+	seq++;
+        diff_sec=current_time.tv_sec-init_time.tv_sec;
+         diff_nsec=current_time.tv_nsec-init_time.tv_nsec;
+
+	 bio=rq->bio;
+	if(bio==NULL)
+		 printk("%d,%d %d %ld %ld.%lld 'R'    \n",MAJOR(dev),MINOR(dev),rq->cpu,seq,diff_sec,diff_nsec);
+	else
+	{
+	 RW=(bio->bi_rw)?'R':'W';
+	 F='R';
+         sector=(bio->bi_io_vec->bv_offset);
+         size=bio_sectors(bio);
+		 printk("%d,%d %d %ld %ld.%lld %c  %c %lld+%d \n",MAJOR(dev),MINOR(dev),rq->cpu,seq,diff_sec,diff_nsec,F,RW,sector,size);
+        }
+
+}
+
+static void my_block_comp(struct request *rq)
+{
+	 seq++; 
+        diff_sec=current_time.tv_sec-init_time.tv_sec;
+         diff_nsec=current_time.tv_nsec-init_time.tv_nsec;
+   	bio=rq->bio;
+	if(bio==NULL)
+         {
+		
+	     printk("%d,%d %d %ld %ld.%lld 'C'    \n",MAJOR(dev),MINOR(dev),rq->cpu,seq,diff_sec,diff_nsec);
+ 	 }		
+         else	 
+	 {	
+         RW=(bio->bi_rw)?'R':'W';
+	 F='C';
+         sector=(bio->bi_io_vec->bv_offset);
+         size=bio_sectors(bio);
+       	 printk("%d,%d %d %ld  %ld.%lld %c  %c %lld+%d \n",MAJOR(dev),MINOR(dev),rq->cpu,seq,diff_sec,diff_nsec,F,RW,sector,size);
+	}
+       
+}
+
+
 
 static void my_block_fun(struct task_struct *task,struct bio* bio)
 {
-	struct request_queue *req;
-	struct request *request;
-	int cpu;
-	int pid;
-	req=1;
-	req=bdev_get_queue(bio->bi_bdev);
-	if(req)
+	getrawmonotonic(&current_time);
+	if(strcmp(disk->disk_name,bio->bi_bdev->bd_disk->disk_name)==0)
 	{
-	        if(queue==req)
-		{
+	        	seq++;
 			RW=(bio->bi_rw)?'R':'W';
+			F=(task->bio_list)?'M':'I';
 			sector=(bio->bi_io_vec->bv_offset);
 			size=bio_sectors(bio);
 			cpu=task_thread_info(task)->cpu;
+			diff_sec=current_time.tv_sec-init_time.tv_sec;
+                        diff_nsec=current_time.tv_nsec-init_time.tv_nsec;
+			printk("%d,%d %d %ld %ld.%lld %d %c %c %lld+%d %s\n",MAJOR(dev),MINOR(dev),cpu,seq,diff_sec,diff_nsec,task->pid,F,RW,sector,size,task->comm); 
 		
-			printk("%d,%d %d %d %c %d+%d %s\n",MAJOR(dev),MINOR(dev),cpu,task->pid,RW,sector,size,task->comm); 
-		}
 	}
-//  	set_current_state(TASK_INTERRUPTIBLE);
-//    schedule_timeout(HZ);
-// 	queue=disk->queue;
- //req=queue->boundary_rq;
-//   	req_queue=(&(queue->queue_head))->next;
-//   	req=list_entry(req_queue,struct request,queuelist);
-/*    if(!list_empty(&queue->queue_head))
-    {
-	req=list_entry(req_queue,struct request,queuelist);
- 		if(req)
-   		{
-   			bio=req->bio;
-   			for_each_bio(bio)
-   			{
-   				sector=0;
-   				size=0;
-   				RW=(bio->bi_rw)?'R':'W';
-   				bvec=bio->bi_iter;
-   				sector=bvec.bi_sector;
-   				size=bvec.bi_size;
-   				trace_block_IO(MAJOR(dev),MINOR(dev),RW,sector,size,task->comm);
-   			}	
-    	}
-    
- 	}
-
-if(task->bio_list)
-printk("Hello\n");
-else
-printk("not Hello\n");
-*/}
+	if((current_time.tv_sec-init_time.tv_sec)>timer)
+	{
+		block_fun=NULL;
+		block_requeue=NULL;
+		block_comp=NULL;
+		printk("complete\n");
+	}
+}
 
 static __init int start_module(void)
 {
-   	dev=name_to_dev_t("/dev/sda1");
-// dev_t dev1=blk_lookup_devt("sda",1); 
+	memset(device,0,30);
+	strcpy(device,"/dev/sda1");
+   	dev=name_to_dev_t(device);
     printk(KERN_INFO "Major %d minor %d\n",MAJOR(dev),MINOR(dev));
  	disk = get_gendisk(dev,&dummy);
  	printk(KERN_INFO "disk name %s\n",disk->disk_name);
 	if(!disk)
 	return 0;
 	queue=disk->queue;
+	getrawmonotonic(&init_time);
 	block_fun=my_block_fun;
-// 	simple_tsk = kthread_run(simple_thread, NULL, "event-sample");
-//        if (IS_ERR(simple_tsk))
-//                return -1;
-
-// while(1)
-// {
- // }  
-
-// }
-/*    buf = (unsigned char*)vmalloc(0x800);
-    memset( buf , 0xFE , 0x800 );
-
-
-    bio = bio_map_kern( disk->queue , buf , 0x400 , GFP_KERNEL );
-    if( IS_ERR(bio) )
-        {
-          vfree(buf);
-          return 0;
-         }
-
-    bio->bi_sector = 0;
- bio->bi_bdev = bdget_disk(disk,0);
- printk("   bi_bdev = %016lX\n",(unsigned long)(bio->bi_bdev));
- printk("   bi_bdev->bd_disk = %s\n",(bio->bi_bdev->bd_disk->disk_name));
- if(bio->bi_sector)
-   printk(" sector %lld \n",bio->bi_sector);
- if(bio->bi_flags)
-    printk("flags %lu\n",bio->bi_flags);
- if(bio->bi_rw)
-    printk("rw %lu\n",bio->bi_rw);
-*/// queue=disk->queue;
-// req=queue->boundary_rq;
- //printk(KERN_INFO "Pending requests:%d\n",(queue->nr_pending)); 
- return 0;
+	block_requeue=my_block_requeue;
+	block_comp=my_block_comp;
+return 0;
 }
 static __exit void end_module(void)
 {
 	block_fun=NULL;
+	block_requeue=NULL;
+	block_comp=NULL;
 	printk(KERN_INFO "exited\n");
 }
 

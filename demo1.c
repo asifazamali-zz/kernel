@@ -7,15 +7,15 @@
 static int __init config_init(void)
 {
 	struct timespec *init_time;
-	getnstimeofday(init_time);
+	getrawmonotonic(init_time);
 	struct timespec *current_time;
 	unsigned long long initial_clock,current_clock;
 //	initial_clock=trace_clock_counter();
         do
 	{
-		getnstimeofday(current_time);
+		getrawmonotonic(current_time);
 	//	current_clock=trace_clock_counter();
-		printk("timediff %ld %ld  \n",current_time->tv_sec-init_time->tv_sec,current_time->tv_nsec-init_time->tv_nsec);
+		printk("timediff %ld   \n",current_time->tv_sec,init_time->tv_sec);//,current_time->tv_nsec-init_time->tv_nsec);
 	}while((current_time->tv_sec-init_time->tv_sec)<10);
 	return 0;
 }
